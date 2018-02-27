@@ -1,0 +1,49 @@
+{
+    "name": "undkonsorten/meta-tag",
+    "description": "Provides Fluid view helpers to set meta tags in TYPO3 CMS",
+    "type": "typo3-cms-extension",
+    "require": {
+        "typo3/cms-core": "^8.7",
+        "php": "^7.1"
+    },
+    "require-dev": {
+        "nimut/testing-framework": "^1.0 || ^2.0 || ^3.0"
+    },
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "Felix Althaus",
+            "email": "felix.althaus@undkonsorten.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Undkonsorten\\MetaTag\\": "Classes"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Undkonsorten\\MetaTag\\Tests\\": "Tests"
+        }
+    },
+    "replace": {
+        "meta_tag": "self.version"
+    },
+    "config": {
+        "vendor-dir": ".Build/vendor",
+        "bin-dir": ".Build/bin"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "mkdir -p .Build/Web/typo3conf/ext/",
+            "[ -L .Build/Web/typo3conf/ext/news ] || ln -snvf ../../../../. .Build/Web/typo3conf/ext/news"
+        ],
+        "tests": ".Build/bin/phpunit -c Tests/Unit/UnitTests.xml"
+    },
+    "extra": {
+        "typo3/cms": {
+            "cms-package-dir": "{$vendor-dir}/typo3/cms",
+            "web-dir": ".Build/Web"
+        }
+    }
+}
