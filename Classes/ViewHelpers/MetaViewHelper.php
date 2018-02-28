@@ -46,6 +46,7 @@ class MetaViewHelper extends AbstractViewHelper
      * can be removed in TYPO3 v9, replaced by PageRenderer
      *
      * @return MetaTagRegistry
+     * @codeCoverageIgnore
      */
     static protected function getMetaTagRegistry()
     {
@@ -55,6 +56,9 @@ class MetaViewHelper extends AbstractViewHelper
         return static::$metaTagRegistry;
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
     public function initializeArguments()
     {
         parent::initializeArguments();

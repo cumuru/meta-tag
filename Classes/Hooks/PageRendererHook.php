@@ -24,6 +24,7 @@ use Undkonsorten\MetaTag\Service\MetaTagRegistry;
  * Class PageRendererHook
  * @package Undkonsorten\IntegrationNgfh\Hooks
  * @author Felix Althaus <felix.althaus@undkonsorten.com>
+ * @codeCoverageIgnore
  */
 class PageRendererHook
 {
