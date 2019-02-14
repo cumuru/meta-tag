@@ -1,6 +1,9 @@
 <?php
 defined('TYPO3_MODE') or die();
 
+// Register custom page renderer
 call_user_func(function () {
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_pagerenderer.php']['render-preProcess'][] = \Undkonsorten\MetaTag\Hooks\PageRendererHook::class . '->transferMetaTagsToPageRenderer';
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'][\TYPO3\CMS\Core\Page\PageRenderer::class] = [
+        'className' => \Undkonsorten\MetaTag\Page\PageRenderer::class,
+    ];
 });

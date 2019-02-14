@@ -1,9 +1,6 @@
 <?php
-
-namespace Undkonsorten\MetaTag\ViewHelpers;
-
 /**
- * This file is part of the TYPO3 CMS project.
+ * This file is part of the TYPO3 CMS extension "meta_tag".
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -14,47 +11,25 @@ namespace Undkonsorten\MetaTag\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+declare(strict_types=1);
+namespace Undkonsorten\MetaTag\ViewHelpers;
 
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
-use Undkonsorten\MetaTag\Service\MetaTagRegistry;
-
 
 /**
  * Class MetaTagViewHelper
- * @package Undkonsorten\IntegrationNgfh\ViewHelpers
+ *
+ * @package Undkonsorten\MetaTag\ViewHelpers
  * @author Felix Althaus <felix.althaus@undkonsorten.com>
  */
 class MetaViewHelper extends AbstractViewHelper
 {
 
     use CompileWithRenderStatic;
-
-    /**
-     * can be removed in TYPO3 v9
-     *
-     * @var MetaTagRegistry
-     */
-    static protected $metaTagRegistry;
-
-
-    /**
-     * Gets the MetaTagRegistry singleton
-     * can be removed in TYPO3 v9, replaced by PageRenderer
-     *
-     * @return MetaTagRegistry
-     * @codeCoverageIgnore
-     */
-    static protected function getMetaTagRegistry()
-    {
-        if (null === static::$metaTagRegistry) {
-            static::$metaTagRegistry = GeneralUtility::makeInstance(ObjectManager::class)->get(MetaTagRegistry::class);
-        }
-        return static::$metaTagRegistry;
-    }
 
     /**
      * @codeCoverageIgnore
@@ -76,7 +51,7 @@ class MetaViewHelper extends AbstractViewHelper
      * @param RenderingContextInterface $renderingContext
      * @return void
      */
-    static public function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
+    public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
     {
         list($type, $name) = static::resolveTypeAndName($arguments, ['property', 'http-equiv', 'name']);
         // Use content attribute with fallback on tag content
@@ -95,7 +70,7 @@ class MetaViewHelper extends AbstractViewHelper
      * @param array $attributeList
      * @return array
      */
-    static protected function resolveTypeAndName(array $arguments, array $attributeList)
+    protected static function resolveTypeAndName(array $arguments, array $attributeList)
     {
         $typeArray = array_filter($attributeList, function(string $attribute) use ($arguments) {
             return isset($arguments[$attribute]);
@@ -116,7 +91,7 @@ class MetaViewHelper extends AbstractViewHelper
     /**
      * Adds a meta tag of given type, name and content
      *
-     * Calls custom Registry for now, can be replaced by
+     * Uses custom {@see \Undkonsorten\MetaTag\Page\PageRenderer} for now, can be replaced by
      * PageRenderer calls from TYPO3 v9 on
      *
      * @param string $type Type of the meta tag ("property", "http-equiv" or "name")
@@ -124,14 +99,62 @@ class MetaViewHelper extends AbstractViewHelper
      * @param string $content Content attribute of the resulting tag
      * @param bool $override If set, overrides an existing tag of same type and name
      */
-    static protected function addMetaTag(string $type, string $name, string $content, bool $override = false)
+    protected static function addMetaTag(string $type, string $name, string $content, bool $override = false)
     {
-        $metaTagRegistry = static::getMetaTagRegistry();
-        if (!count($metaTagRegistry->getMetaTag($type, $name))) {
-            $metaTagRegistry->setMetaTag($type, $name, $content);
-        } elseif ($override) {
-            $metaTagRegistry->removeMetaTag($type, $name);
-            $metaTagRegistry->setMetaTag($type, $name, $content);
+        /** @var \Undkonsorten\MetaTag\Page\PageRenderer $pageRenderer */
+        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
+        $metaTags = $pageRenderer->getMetaTags();
+
+        // Check if the new meta tag should be added
+        $shouldAddNewMetaTag = true;
+        $metaTags = array_filter($metaTags, function ($metaTag) use ($type, $name, $override, &$shouldAddNewMetaTag) {
+            if (!static::metaTagAlreadyExists($metaTag, $type, $name)) {
+                if ($override) {
+                    return false;
+                } else {
+                    $shouldAddNewMetaTag = false;
+                }
+            }
+            return true;
+        });
+
+        // Add new meta tag
+        if ($shouldAddNewMetaTag) {
+            $metaTags[] = static::renderMetaTag($type, $name, $content);
         }
+
+        $pageRenderer->setMetaTags($metaTags);
+    }
+
+    /**
+     * Check if meta tag already exists
+     *
+     * @param string $metaTag Rendered meta tag
+     * @param string $type Type of the meta tag ("property", "http-equiv" or "name")
+     * @param string $name Name of the meta tag (i.e. value of the $type attribute)
+     * @return bool `true` if the meta tag already exists, `false` otherwise
+     */
+    public static function metaTagAlreadyExists(string $metaTag, string $type, string $name): bool
+    {
+        return stripos($metaTag, sprintf('%s="%s"', $type, $name)) === false;
+    }
+
+    /**
+     * Renders a meta tag
+     * 
+     * @param string $type Type of the meta tag ("property", "http-equiv" or "name")
+     * @param string $name Name of the meta tag (i.e. value of the $type attribute)
+     * @param string $content Content attribute of the resulting tag
+     * @return string The rendered meta tag
+     */
+    public static function renderMetaTag(string $type, string $name, string $content): string
+    {
+        /** @noinspection HtmlUnknownAttribute */
+        return sprintf(
+            '<meta %s="%s" content="%s" />',
+            htmlspecialchars($type),
+            htmlspecialchars($name),
+            htmlspecialchars($content)
+        );
     }
 }

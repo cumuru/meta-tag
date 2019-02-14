@@ -1,9 +1,6 @@
 <?php
-
-namespace Undkonsorten\MetaTag\ViewHelpers\Format;
-
 /**
- * This file is part of the TYPO3 CMS project.
+ * This file is part of the TYPO3 CMS extension "meta_tag".
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -14,6 +11,8 @@ namespace Undkonsorten\MetaTag\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+declare(strict_types=1);
+namespace Undkonsorten\MetaTag\ViewHelpers\Format;
 
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -21,7 +20,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Class NothingViewHelper
- * @package Undkonsorten\IntegrationNgfh\ViewHelpers\Format
+ *
+ * @package Undkonsorten\MetaTag\ViewHelpers\Format
  * @author Felix Althaus <felix.althaus@undkonsorten.com>
  */
 class NothingViewHelper extends AbstractViewHelper
