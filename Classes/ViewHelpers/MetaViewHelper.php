@@ -32,6 +32,23 @@ class MetaViewHelper extends AbstractViewHelper
     use CompileWithRenderStatic;
 
     /**
+     * @var \Undkonsorten\MetaTag\Page\PageRenderer
+     */
+    protected static $pageRenderer;
+
+    /**
+     * @return \Undkonsorten\MetaTag\Page\PageRenderer
+     */
+    protected static function getPageRenderer(): \Undkonsorten\MetaTag\Page\PageRenderer
+    {
+        if (static::$pageRenderer === null) {
+            /** @noinspection PhpIncompatibleReturnTypeInspection */
+            static::$pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
+        }
+        return static::$pageRenderer;
+    }
+
+    /**
      * @codeCoverageIgnore
      */
     public function initializeArguments()
@@ -101,8 +118,7 @@ class MetaViewHelper extends AbstractViewHelper
      */
     protected static function addMetaTag(string $type, string $name, string $content, bool $override = false)
     {
-        /** @var \Undkonsorten\MetaTag\Page\PageRenderer $pageRenderer */
-        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
+        $pageRenderer = static::getPageRenderer();
         $metaTags = $pageRenderer->getMetaTags();
 
         // Check if the new meta tag should be added
