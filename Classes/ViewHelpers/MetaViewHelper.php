@@ -55,7 +55,7 @@ class MetaViewHelper extends AbstractViewHelper
     {
         list($type, $name) = static::resolveTypeAndName($arguments, ['property', 'http-equiv', 'name']);
         // Use content attribute with fallback on tag content
-        $content = trim((string) $arguments['content'] ?? $renderChildrenClosure());
+        $content = trim((string)($arguments['content'] ?? $renderChildrenClosure()));
         // Only add meta tag if there‘s content to add
         if (strlen($content)) {
             $override = (bool) $arguments['override'];
