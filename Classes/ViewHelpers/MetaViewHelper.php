@@ -121,9 +121,8 @@ class MetaViewHelper extends AbstractViewHelper
         // Add new meta tag
         if ($shouldAddNewMetaTag) {
             $metaTags[] = static::renderMetaTag($type, $name, $content);
+            $pageRenderer->setMetaTags($metaTags);
         }
-
-        $pageRenderer->setMetaTags($metaTags);
     }
 
     /**
