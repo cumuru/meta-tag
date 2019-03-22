@@ -2,9 +2,7 @@
 
 TYPO3 extension allowing to write your meta-tags in
 Fluid. Syntax is a close as possible to the HTML
-`<meta>` tag. Uses a singleton that behaves in the same
-way as the upcoming metatag API in TYPO3 v9.
-Ships with one level of override.
+`<meta>` tag. Ships with one level of override.
 
 ## Installation
 
