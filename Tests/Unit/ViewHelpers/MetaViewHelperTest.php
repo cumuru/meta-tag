@@ -1,22 +1,28 @@
 <?php
+declare(strict_types=1);
 /**
- * Created by PhpStorm.
- * User: felix
- * Date: 27.02.18
- * Time: 10:05
+ * This file is part of the TYPO3 CMS extension "meta_tag".
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
  */
-
 namespace Undkonsorten\MetaTag\Tests\Unit\ViewHelpers;
 
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use TYPO3\CMS\Core\MetaTag\MetaTagManagerInterface;
+use TYPO3\CMS\Core\MetaTag\MetaTagManagerRegistry;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
-use Undkonsorten\MetaTag\Page\PageRenderer;
 use Undkonsorten\MetaTag\ViewHelpers\MetaViewHelper;
 
 class MetaViewHelperTest extends UnitTestCase
 {
-
     /**
      * @var MetaViewHelper
      */
@@ -30,31 +36,44 @@ class MetaViewHelperTest extends UnitTestCase
     /**
      * @var MockObject
      */
-    protected $pageRendererMock;
+    protected $metaTagManagerRegistry;
 
     /**
-     * {@inheritdoc}
+     * @var MockObject
      */
-    public function setUp()
+    protected $metaTagManager;
+
+    public function setUp(): void
     {
-        $this->pageRendererMock = $this->getMockBuilder(PageRenderer::class)->disableOriginalConstructor()->getMock();
+        $this->metaTagManagerRegistry = $this->getMockBuilder(MetaTagManagerRegistry::class)->setMethods(['getManagerForProperty'])->getMock();
+        $this->metaTagManager = $this->getMockBuilder(MetaTagManagerInterface::class)
+            ->setMethods([
+                'addProperty',
+                'getProperty',
+                'canHandleProperty',
+                'getAllHandledProperties',
+                'renderAllProperties',
+                'renderProperty',
+                'removeProperty',
+                'removeAllProperties'
+            ])
+            ->getMock();
+        $this->metaTagManagerRegistry->expects($this->any())->method('getManagerForProperty')->willReturn($this->metaTagManager);
+
         $this->viewHelper = $this->getAccessibleMock(MetaViewHelper::class, ['none']);
-        $this->viewHelper->_setStatic('pageRenderer', $this->pageRendererMock);
+        $this->viewHelper->_setStatic('metaTagManagerRegistry', $this->metaTagManagerRegistry);
         $this->renderingContext = $this->getMockBuilder(RenderingContext::class)->disableOriginalConstructor()->getMock();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function tearDown()
+    public function tearDown(): void
     {
         unset($this->viewHelper);
         unset($this->renderingContext);
-        unset($this->pageRendererMock);
+        unset($this->metaTagManagerRegistry);
     }
 
     /**
-     * @param string|null $result
+     * @param null $result
      * @return \Closure
      */
     protected function getRenderChildrenClosureForExpectedResult($result = null): \Closure
@@ -65,29 +84,12 @@ class MetaViewHelperTest extends UnitTestCase
     }
 
     /**
-     * @param $expectsGetMetaTagsCall
-     * @param $getMetaTagsReturns
-     * @param $expectsSetMetaTagsCall
-     */
-    protected function setNewPageRendererMockInViewHelper($expectsGetMetaTagsCall, $getMetaTagsReturns, $expectsSetMetaTagsCall)
-    {
-        $pageRendererMock = $this->getMockBuilder(PageRenderer::class)->disableOriginalConstructor()->getMock();
-        $pageRendererMock->expects($expectsGetMetaTagsCall ? $this->once() : $this->never())
-            ->method('getMetaTags')
-            ->willReturn($getMetaTagsReturns);
-        $pageRendererMock->expects($expectsSetMetaTagsCall ? $this->once() : $this->never())
-            ->method('setMetaTags');
-        /** @noinspection PhpUndefinedMethodInspection */
-        $this->viewHelper->_setStatic('pageRenderer', $pageRendererMock);
-    }
-
-    /**
+     * @param array $arguments
+     *
      * @test
      * @dataProvider moreThanOneAllowedArgument
-     *
-     * @param array $arguments
      */
-    public function exactlyOneOfTheExpectedArgumentsShouldBeSet(array $arguments)
+    public function exactlyOneOfTheExpectedArgumentsShouldBeSet(array $arguments): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->viewHelper::renderStatic(
@@ -100,7 +102,7 @@ class MetaViewHelperTest extends UnitTestCase
     /**
      * @test
      */
-    public function exactlyOneOfTheExpectedArgumentsMustBeSet()
+    public function exactlyOneOfTheExpectedArgumentsMustBeSet(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->viewHelper::renderStatic(
@@ -113,9 +115,9 @@ class MetaViewHelperTest extends UnitTestCase
     /**
      * @test
      */
-    public function emptyContentAttributeWillNotRenderATag()
+    public function emptyContentAttributeWillNotRenderATag(): void
     {
-        $this->pageRendererMock->expects($this->never())->method('setMetaTags');
+        $this->metaTagManager->expects($this->never())->method('addProperty');
         $this->viewHelper::renderStatic(
             ['content' => '', 'property' => 'test'],
             $this->getRenderChildrenClosureForExpectedResult(''),
@@ -124,43 +126,30 @@ class MetaViewHelperTest extends UnitTestCase
     }
 
     /**
+     * @param string $type
+     * @param string $property
+     * @param string $content
+     * @param bool $override
+     * @param bool $expectedReplaceArgument
+     *
      * @test
      * @dataProvider overrideDataProvider
-     *
-     * @param $firstContent
-     * @param $firstOverride
-     * @param $secondContent
-     * @param $secondOverride
-     * @param $callsSetterOnFirst
-     * @param $callsSetterOnSecond
      */
-    public function overrideAttributeRaisesPriority($firstContent, $firstOverride, $secondContent, $secondOverride, $callsSetterOnFirst, $callsSetterOnSecond)
+    public function overrideAttributeRaisesPriority(
+        string $type,
+        string $property,
+        string $content,
+        bool $override,
+        bool $expectedReplaceArgument
+    ): void
     {
-        $hasFirstContent = (bool)strlen($firstContent);
-        $this->setNewPageRendererMockInViewHelper($hasFirstContent, [], $callsSetterOnFirst);
+        $this->metaTagManager->expects($this->once())->method('addProperty')
+            ->with($property, $content, [], $expectedReplaceArgument, $type);
         $this->viewHelper::renderStatic(
             [
-                'property' => 'test',
-                'override' => $firstOverride,
-                'content' => $firstContent,
-            ],
-            $this->getRenderChildrenClosureForExpectedResult(),
-            $this->renderingContext
-        );
-
-        $hasSecondContent = (bool)strlen($secondContent);
-        $this->setNewPageRendererMockInViewHelper(
-            $hasSecondContent,
-            $hasFirstContent
-                ? [sprintf('<meta property="test" content="%s" />', htmlspecialchars($firstContent))]
-                : [],
-            $callsSetterOnSecond
-        );
-        $this->viewHelper::renderStatic(
-            [
-                'property' => 'test',
-                'override' => $secondOverride,
-                'content' => $secondContent,
+                $type => $property,
+                'override' => $override,
+                'content' => $content,
             ],
             $this->getRenderChildrenClosureForExpectedResult(),
             $this->renderingContext
@@ -168,22 +157,25 @@ class MetaViewHelperTest extends UnitTestCase
     }
 
     /**
+     * @param string|null $contentAttribute
+     * @param string|null $tagContent
+     * @param string $expected
+     *
      * @test
      * @dataProvider contentAttributeAndTagContent
-     *
-     * @param $contentAttribute
-     * @param $tagContent
-     * @param $expected
      */
-    public function contentAttributeAndTagContentWillRenderTag($contentAttribute, $tagContent, $expected)
+    public function contentAttributeAndTagContentWillRenderTag(
+        ?string $contentAttribute,
+        ?string $tagContent,
+        string $expected
+    ): void
     {
         $arguments = ['property' => 'test'];
         if (null !== $contentAttribute) {
             $arguments['content'] = $contentAttribute;
         }
-        $this->pageRendererMock->expects($this->once())->method('setMetaTags')->with([
-            sprintf('<meta property="test" content="%s" />', htmlspecialchars($expected))
-        ]);
+        $this->metaTagManager->expects($this->once())->method('addProperty')
+            ->with('test', $expected, [], false, 'property');
         $this->viewHelper::renderStatic(
             $arguments,
             $this->getRenderChildrenClosureForExpectedResult($tagContent),
@@ -191,7 +183,7 @@ class MetaViewHelperTest extends UnitTestCase
         );
     }
 
-    public function moreThanOneAllowedArgument()
+    public function moreThanOneAllowedArgument(): array
     {
         return [
             'Property and name' => [['property' => 'a', 'name' => 'b']],
@@ -201,7 +193,7 @@ class MetaViewHelperTest extends UnitTestCase
         ];
     }
 
-    public function contentAttributeAndTagContent()
+    public function contentAttributeAndTagContent(): array
     {
         return [
             'Content attribute' => ['attribute', null, 'attribute'],
@@ -210,15 +202,15 @@ class MetaViewHelperTest extends UnitTestCase
         ];
     }
 
-    public function overrideDataProvider()
+    public function overrideDataProvider(): array
     {
         return [
-            ['content1', false, 'content2', true, true, true],
-            ['content1', false, 'content2', false, true, false],
-            ['content1', true, 'content2', true, true, true],
-            ['content1', true, 'content2', false, true, false],
-            ['', false, 'content2', false, false, true],
-            ['content1', false, '', true, true, false],
+            'With override and type name' => ['name', 'description', 'content', true, true],
+            'With override and type property' => ['property', 'og:image', 'content', true, true],
+            'With override and type http-equiv' => ['http-equiv', 'refresh', 'content', true, true],
+            'Without override and type name' => ['name', 'description', 'content', false, false],
+            'Without override and type property' => ['property', 'og:image', 'content', false, false],
+            'Without override and type http-equiv' => ['http-equiv', 'refresh', 'content', false, false],
         ];
     }
 }

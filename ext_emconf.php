@@ -1,5 +1,6 @@
 <?php
 
+/** @noinspection PhpUndefinedVariableInspection */
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Meta Tag',
     'description' => 'Fluid view helper for generating meta tags.',
@@ -14,15 +15,7 @@ $EM_CONF[$_EXTKEY] = [
     'version' => '0.1.0',
     'constraints' => [
         'depends' => [
-            'typo3' => '8.7',
-            'php' => '7.0',
+            'typo3' => '9.5.0-9.5.99',
         ],
-        'conflicts' => [],
-        'suggests' => [],
-    ],
-    'autoload' => [
-        'psr-4' => [
-            'Undkonsorten\\MetaTag\\' => 'Classes/'
-        ]
     ],
 ];

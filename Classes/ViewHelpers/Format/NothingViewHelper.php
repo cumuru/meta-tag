@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * This file is part of the TYPO3 CMS extension "meta_tag".
  *
@@ -11,7 +12,6 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-declare(strict_types=1);
 namespace Undkonsorten\MetaTag\ViewHelpers\Format;
 
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -26,7 +26,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 class NothingViewHelper extends AbstractViewHelper
 {
-
     use CompileWithRenderStatic;
 
     static public function renderStatic(

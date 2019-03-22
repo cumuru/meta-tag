@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * This file is part of the TYPO3 CMS extension "meta_tag".
  *
@@ -11,10 +12,9 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-declare(strict_types=1);
 namespace Undkonsorten\MetaTag\ViewHelpers;
 
-use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\MetaTag\MetaTagManagerRegistry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -28,30 +28,31 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 class MetaViewHelper extends AbstractViewHelper
 {
-
     use CompileWithRenderStatic;
 
     /**
-     * @var \Undkonsorten\MetaTag\Page\PageRenderer
+     * @var MetaTagManagerRegistry
      */
-    protected static $pageRenderer;
+    static protected $metaTagManagerRegistry;
+
 
     /**
-     * @return \Undkonsorten\MetaTag\Page\PageRenderer
+     * Gets the MetaTagRegistry singleton
+     *
+     * @return MetaTagManagerRegistry
      */
-    protected static function getPageRenderer(): \Undkonsorten\MetaTag\Page\PageRenderer
+    protected static function getMetaTagManagerRegistry(): MetaTagManagerRegistry
     {
-        if (static::$pageRenderer === null) {
-            /** @noinspection PhpIncompatibleReturnTypeInspection */
-            static::$pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
+        if (null === static::$metaTagManagerRegistry) {
+            static::$metaTagManagerRegistry = GeneralUtility::makeInstance(MetaTagManagerRegistry::class);
         }
-        return static::$pageRenderer;
+        return static::$metaTagManagerRegistry;
     }
 
     /**
      * @codeCoverageIgnore
      */
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         parent::initializeArguments();
         $this->registerArgument('property', 'string', '"property" attribute of the meta tag');
@@ -66,7 +67,6 @@ class MetaViewHelper extends AbstractViewHelper
      * @param array $arguments
      * @param \Closure $renderChildrenClosure
      * @param RenderingContextInterface $renderingContext
-     * @return void
      */
     public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
     {
@@ -87,7 +87,7 @@ class MetaViewHelper extends AbstractViewHelper
      * @param array $attributeList
      * @return array
      */
-    protected static function resolveTypeAndName(array $arguments, array $attributeList)
+    protected static function resolveTypeAndName(array $arguments, array $attributeList): array
     {
         $typeArray = array_filter($attributeList, function(string $attribute) use ($arguments) {
             return isset($arguments[$attribute]);
@@ -108,68 +108,14 @@ class MetaViewHelper extends AbstractViewHelper
     /**
      * Adds a meta tag of given type, name and content
      *
-     * Uses custom {@see \Undkonsorten\MetaTag\Page\PageRenderer} for now, can be replaced by
-     * PageRenderer calls from TYPO3 v9 on
-     *
      * @param string $type Type of the meta tag ("property", "http-equiv" or "name")
      * @param string $name Name of the meta tag (i.e. value of the $type attribute)
      * @param string $content Content attribute of the resulting tag
      * @param bool $override If set, overrides an existing tag of same type and name
      */
-    protected static function addMetaTag(string $type, string $name, string $content, bool $override = false)
+    protected static function addMetaTag(string $type, string $name, string $content, bool $override = false): void
     {
-        $pageRenderer = static::getPageRenderer();
-        $metaTags = $pageRenderer->getMetaTags();
-
-        // Check if the new meta tag should be added
-        $shouldAddNewMetaTag = true;
-        $metaTags = array_filter($metaTags, function ($metaTag) use ($type, $name, $override, &$shouldAddNewMetaTag) {
-            if (!static::metaTagAlreadyExists($metaTag, $type, $name)) {
-                if ($override) {
-                    return false;
-                } else {
-                    $shouldAddNewMetaTag = false;
-                }
-            }
-            return true;
-        });
-
-        // Add new meta tag
-        if ($shouldAddNewMetaTag) {
-            $metaTags[] = static::renderMetaTag($type, $name, $content);
-            $pageRenderer->setMetaTags($metaTags);
-        }
-    }
-
-    /**
-     * Check if meta tag already exists
-     *
-     * @param string $metaTag Rendered meta tag
-     * @param string $type Type of the meta tag ("property", "http-equiv" or "name")
-     * @param string $name Name of the meta tag (i.e. value of the $type attribute)
-     * @return bool `true` if the meta tag already exists, `false` otherwise
-     */
-    public static function metaTagAlreadyExists(string $metaTag, string $type, string $name): bool
-    {
-        return stripos($metaTag, sprintf('%s="%s"', $type, $name)) === false;
-    }
-
-    /**
-     * Renders a meta tag
-     * 
-     * @param string $type Type of the meta tag ("property", "http-equiv" or "name")
-     * @param string $name Name of the meta tag (i.e. value of the $type attribute)
-     * @param string $content Content attribute of the resulting tag
-     * @return string The rendered meta tag
-     */
-    public static function renderMetaTag(string $type, string $name, string $content): string
-    {
-        /** @noinspection HtmlUnknownAttribute */
-        return sprintf(
-            '<meta %s="%s" content="%s" />',
-            htmlspecialchars($type),
-            htmlspecialchars($name),
-            htmlspecialchars($content)
-        );
+        $metaTagManager = static::getMetaTagManagerRegistry()->getManagerForProperty($name);
+        $metaTagManager->addProperty($name, $content, [], $override, $type);
     }
 }

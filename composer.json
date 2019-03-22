@@ -3,11 +3,11 @@
     "description": "Provides Fluid view helpers to set meta tags in TYPO3 CMS",
     "type": "typo3-cms-extension",
     "require": {
-        "typo3/cms-core": "^8.7",
-        "php": "^7.0"
+      "typo3/cms-core": "^9.5",
+      "php": "^7.2"
     },
     "require-dev": {
-        "nimut/testing-framework": "^1.0 || ^2.0 || ^3.0"
+      "nimut/testing-framework": "^4.0"
     },
     "license": "GPL-2.0+",
     "authors": [
